@@ -1,0 +1,30 @@
+bundle:
+  name: dbx-interview-lab
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog used by the medallion pipeline
+    default: dev
+
+sync:
+  include:
+    - src/medallion/*.py
+
+targets:
+  dev:
+    default: true
+    mode: development
+    variables:
+      catalog: dev
+
+  prod:
+    mode: production
+    git:
+      branch: main
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: prod

@@ -1,0 +1,35 @@
+# Terraform state, caches and saved plans can contain sensitive data.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Local credentials and editor/OS files.
+.env
+.env.*
+!.env.example
+.databrickscfg
+**/.databricks/
+.DS_Store
+
+# Commit .terraform.lock.hcl: it records exact provider selections.
+
+# environment file
+.env
+
+# Python bytecode.
+__pycache__/
+*.py[cod]
+
+# Working notes and lab journal; kept local, not published.
+docs/
