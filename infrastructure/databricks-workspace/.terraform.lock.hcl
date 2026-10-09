@@ -6,6 +6,7 @@ provider "registry.terraform.io/databricks/databricks" {
   constraints = "~> 1.128.0"
   hashes = [
     "h1:fvv7kVllSreh7pG+6bW1SYnbS9dkwkyhQb32qKN+/fs=",
+    "h1:hbSXPF0crZ2XBCQ7w6NHCVIPfbRLOTn6aJ5hARZdoH0=",
     "zh:0e71e4d3f601898088d86d794aafc7b2f7d6f926ec84a1ba94afe4791fe54536",
     "zh:2a13706ded73a54f8b19d4d3af075d279ba6661c6201aa16721ac9f15557bf48",
     "zh:31765b77c55028d556a6d06f4985b6158327463742263a1c499ef16d61a509e5",
