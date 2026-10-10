@@ -24,7 +24,9 @@ Azure subscription
 | `infrastructure/databricks-workspace/` | Terraform root: storage credential, external location, catalog, schemas, grants |
 | `src/medallion/` | Three Databricks notebooks implementing the pipeline |
 | `resources/medallion.job.yml` | Job definition — three sequential tasks |
-| `databricks.yml` | Asset Bundle config with `dev` and `prod` targets |
+| `databricks.yml` | Asset Bundle config with personal `dev` and automated `dev-ci`, `staging`, `prod` targets |
+| `.github/workflows/` | CI validation and manually triggered CD promotion |
+| `DEPLOYMENT.md` | Deployment prerequisites, OIDC setup and release commands |
 | `scripts/` | One-command build and teardown |
 
 ### Why three Terraform roots
@@ -71,13 +73,15 @@ databricks bundle destroy -t dev   # remove the workload first
 ## Continuous integration
 
 The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting
-`main`, pushes to `main`, and manual dispatch. It reports six checks:
+`main`, pushes to `main`, and manual dispatch. CD also reuses it before deployment.
+It reports seven checks:
 
 - Terraform formatting across all three roots.
 - Terraform validation for Azure, Databricks account and Databricks workspace
   independently (three checks).
 - Python syntax for the medallion notebooks, using Python 3.11.
 - Shell syntax for both lifecycle scripts.
+- Offline bundle schema checks and deployment guard/failure tests.
 
 CI installs the locked providers with the state backend disabled. It needs no
 Azure or Databricks credentials, local `terraform.tfvars`, or deployed workspace.
@@ -93,15 +97,32 @@ for root in azure databricks-account databricks-workspace; do
   terraform -chdir="infrastructure/$root" init -backend=false -input=false -lockfile=readonly || exit
   terraform -chdir="infrastructure/$root" validate -no-color || exit
 done
-python3.11 -m compileall -q src/medallion
+python3.11 -m compileall -q src/medallion scripts tests
 bash -n scripts/terraform-up.sh
 bash -n scripts/terraform-down.sh
+# With Databricks CLI 1.20.0 installed:
+python3.11 -m pip install -r requirements-ci.txt
+python3.11 scripts/check_bundle_schema.py
+DATABRICKS_CLI_TEST_BIN=databricks python3.11 -m unittest discover -s tests -v
 ```
 
 Required checks on `main` are a separate GitHub repository setting: a failed
-workflow alone does not prevent a merge. Continuous deployment remains the next
-phase, including deployment identities, environment promotion and a remote state
-backend before automated Terraform applies.
+workflow alone does not prevent a merge.
+
+## Continuous delivery
+
+The [CD workflow](.github/workflows/cd.yml) promotes one commit through dev →
+staging → prod using GitHub OIDC and environment-scoped service principals.
+Start it manually from `main`. Dev can deploy without starting compute;
+promotion to staging/prod requires successful billable pipeline tests, and
+production waits for approval. Existing personal `dev` deployments remain
+separate from the automated `dev-ci` target.
+
+The workflow code is implemented; live deployment requires a rebuilt workspace,
+configured identities and environment variables, and staging/prod catalogs and
+grants. See [the deployment guide](DEPLOYMENT.md) for setup, operation, cleanup
+and limitations. Terraform provisioning remains separate; a remote state backend
+is required before adding automated Terraform applies.
 
 ## Cost
 

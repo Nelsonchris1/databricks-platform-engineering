@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Tear down every Terraform-managed platform resource in this lab, in dependency
-# order. Destroy the development bundle before running this script.
+# order. Destroy all deployed bundles before running this script.
 #
 # Order is not optional. Terraform's dependency graph only works inside a single
 # root, so nothing stops you destroying the Azure workspace while Databricks
@@ -96,6 +96,9 @@ The bundle-managed job and source files are not in Terraform state. Before
 continuing, destroy them with:
 
   databricks bundle destroy -t dev
+
+Also destroy any CD targets (prod, staging, dev-ci) that were deployed, using
+their workspace and run-identity variables; see DEPLOYMENT.md.
 
 Deleted data is not recoverable. The medallion tables are regenerable from the
 notebooks; nothing else here is.

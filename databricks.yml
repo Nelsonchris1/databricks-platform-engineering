@@ -8,6 +8,9 @@ variables:
   catalog:
     description: Unity Catalog catalog used by the medallion pipeline
     default: dev
+  run_as_service_principal:
+    description: Application UUID of the deployment target's job identity
+    default: ""
 
 sync:
   include:
@@ -20,11 +23,48 @@ targets:
     variables:
       catalog: dev
 
+  # Stable service-principal deployment; personal `dev` stays separate.
+  dev-ci:
+    mode: production
+    git:
+      branch: main
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.run_as_service_principal}
+    variables:
+      catalog: dev
+    resources:
+      jobs:
+        medallion_job:
+          name: medallion-orders-dev-ci
+
+  staging:
+    mode: production
+    git:
+      branch: main
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.run_as_service_principal}
+    variables:
+      catalog: staging
+    resources:
+      jobs:
+        medallion_job:
+          name: medallion-orders-staging
+
   prod:
     mode: production
     git:
       branch: main
     workspace:
       root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.run_as_service_principal}
     variables:
       catalog: prod
+    resources:
+      jobs:
+        medallion_job:
+          name: medallion-orders-prod
