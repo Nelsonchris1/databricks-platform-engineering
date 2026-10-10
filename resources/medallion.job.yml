@@ -4,6 +4,8 @@ resources:
       name: medallion-orders
       description: Synthetic orders pipeline from bronze through gold
       max_concurrent_runs: 1
+      # Bound a smoke run on the server even if its GitHub runner disconnects.
+      timeout_seconds: 1800
 
       tasks:
         - task_key: bronze_orders

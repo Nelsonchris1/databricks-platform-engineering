@@ -165,12 +165,15 @@ plan_and_apply "$ACCOUNT_DIR" \
   -var "workspace_id=${WORKSPACE_ID}" \
   -var "workspace_host=${WORKSPACE_HOST}"
 
+CD_APPLICATION_ID="$(terraform -chdir="$ACCOUNT_DIR" output -raw cd_application_id)"
+
 # --- 3. Databricks workspace -------------------------------------------------
 
 plan_and_apply "$WORKSPACE_DIR" \
   -var "workspace_host=${WORKSPACE_HOST}" \
   -var "access_connector_id=${ACCESS_CONNECTOR_ID}" \
-  -var "storage_url=${STORAGE_URL}"
+  -var "storage_url=${STORAGE_URL}" \
+  -var "deployment_application_id=${CD_APPLICATION_ID}"
 
 # --- Report ------------------------------------------------------------------
 

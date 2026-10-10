@@ -1,0 +1,90 @@
+name: CD
+run-name: Deploy through ${{ inputs.promote_to }} by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      promote_to:
+        description: Last environment to deploy (dev → staging → prod)
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+        required: true
+      smoke_test:
+        description: Run billable pipeline tests (required for staging/prod)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Serialize the entire promotion chain so releases cannot interleave.
+# Pending runs can be superseded by GitHub; an active deployment is not cancelled.
+concurrency:
+  group: databricks-promotion
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Check release request
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require main and verified promotion
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          PROMOTE_TO: ${{ inputs.promote_to }}
+          SMOKE_TEST: ${{ inputs.smoke_test }}
+        run: |
+          case "$PROMOTE_TO" in
+            dev|staging|prod) ;;
+            *) echo "::error::Unknown deployment environment."; exit 1 ;;
+          esac
+          if [ "$RELEASE_REF" != "refs/heads/main" ]; then
+            echo "::error::Run CD from main after the pull request is merged."
+            exit 1
+          fi
+          if [ "$PROMOTE_TO" != "dev" ] && [ "$SMOKE_TEST" != "true" ]; then
+            echo "::error::Staging/prod promotion requires billable pipeline tests."
+            exit 1
+          fi
+
+  checks:
+    name: Release CI
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+
+  dev:
+    name: Deploy dev
+    needs: checks
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: dev
+      smoke_test: ${{ inputs.smoke_test }}
+
+  staging:
+    name: Deploy staging
+    needs: dev
+    if: ${{ inputs.promote_to == 'staging' || inputs.promote_to == 'prod' }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+      smoke_test: true
+
+  prod:
+    name: Deploy prod
+    needs: staging
+    if: ${{ inputs.promote_to == 'prod' }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: prod
+      smoke_test: true
