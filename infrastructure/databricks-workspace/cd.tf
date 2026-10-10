@@ -9,6 +9,17 @@ variable "deployment_application_id" {
   }
 }
 
+data "databricks_service_principal" "cd" {
+  count          = var.deployment_application_id == "" ? 0 : 1
+  application_id = var.deployment_application_id
+}
+
+resource "databricks_entitlements" "cd" {
+  count                = var.deployment_application_id == "" ? 0 : 1
+  service_principal_id = data.databricks_service_principal.cd[0].id
+  workspace_access     = true
+}
+
 resource "databricks_grant" "cd_catalog" {
   count      = var.deployment_application_id == "" ? 0 : 1
   catalog    = databricks_catalog.this.name
